@@ -13,7 +13,6 @@ from nuscenes.nuscenes import NuScenes
 from util.once_devkit.once import ONCE
 
 from data import nuScenesDataset, ONCEDataset, CollateFn
-# from model import OccupancyForecastingNetwork
 from model import *
 
 
@@ -103,42 +102,12 @@ def train(args):
         model = VFGuidedNeuralMotionPlanner(_n_input, _n_output, _pc_range, _voxel_size)
     elif args.model_type == "obj_guided":
         model = ObjGuidedNeuralMotionPlanner(_n_input, _n_output, _pc_range, _voxel_size)
-    elif args.model_type == "obj_shadow_guided":
-        model = ObjShadowGuidedNeuralMotionPlanner(_n_input, _n_output, _pc_range, _voxel_size)
     elif args.model_type == "vf_explicit":
         model = VFExplicitNeuralMotionPlanner(_n_input, _n_output, _pc_range, _voxel_size, args.nvf_loss_factor)
-    elif args.model_type == "obj_explicit":
-        model = ObjExplicitNeuralMotionPlanner(_n_input, _n_output, _pc_range, _voxel_size, args.obj_loss_factor)
-    elif args.model_type == "occ_explicit":
-        model = OccExplicitNeuralMotionPlanner(_n_input, _n_output, _pc_range, _voxel_size, args.occ_loss_factor)
     elif args.model_type == "vf_supervised":
         model = VFSupervisedNeuralMotionPlanner(_n_input, _n_output, _pc_range, _voxel_size, args.nvf_loss_factor)
-    elif args.model_type == "obj_supervised":
-        model = ObjSupervisedNeuralMotionPlanner(_n_input, _n_output, _pc_range, _voxel_size, args.obj_loss_factor)
-    elif args.model_type == "obj_shadow_supervised":
-        model = ObjShadowSupervisedNeuralMotionPlanner(_n_input, _n_output, _pc_range, _voxel_size, args.obj_loss_factor)
-    elif args.model_type == "obj_supervised_raymax":
-        model = ObjSupervisedRaymaxNeuralMotionPlanner(_n_input, _n_output, _pc_range, _voxel_size, args.obj_loss_factor)
-    elif args.model_type == "lat_occ":
-        model = LatOccNeuralMotionPlanner(_n_input, _n_output, _pc_range, _voxel_size, args.occ_loss_factor)
     elif args.model_type == "lat_occ_vf_supervised":
         model = LatOccVFSupervisedNeuralMotionPlanner(_n_input, _n_output, _pc_range, _voxel_size, args.nvf_loss_factor)
-    elif args.model_type == "lat_occ_vf_sparse_supervised":
-        model = LatOccVFSparseSupervisedNeuralMotionPlanner(_n_input, _n_output, _pc_range, _voxel_size, args.nvf_loss_factor)
-    elif args.model_type == "lat_occ_vf_supervised_lat_occ":
-        model = LatOccVFSupervisedLatOccNeuralMotionPlanner(_n_input, _n_output, _pc_range, _voxel_size, args.nvf_loss_factor)
-    elif args.model_type == "lat_occ_vf_supervised_l2_costmargin":
-        model = LatOccVFSupervisedL2CostMarginNeuralMotionPlanner(_n_input, _n_output, _pc_range, _voxel_size, args.nvf_loss_factor)
-    elif args.model_type == "lat_occ_vf_supervised_xl":
-        model = LatOccVFSupervisedXLNeuralMotionPlanner(_n_input, _n_output, _pc_range, _voxel_size, args.nvf_loss_factor)
-    elif args.model_type == "lat_occ_vf_supervised_xxl":
-        model = LatOccVFSupervisedXXLNeuralMotionPlanner(_n_input, _n_output, _pc_range, _voxel_size, args.nvf_loss_factor)
-    elif args.model_type == "lat_occ_vf_supervised_xxxl":
-        model = LatOccVFSupervisedXXXLNeuralMotionPlanner(_n_input, _n_output, _pc_range, _voxel_size, args.nvf_loss_factor)
-    elif args.model_type == "lat_occ_flow_vf_supervised":
-        model = LatOccFlowVFSupervisedNeuralMotionPlanner(_n_input, _n_output, _pc_range, _voxel_size, args.nvf_loss_factor)
-    elif args.model_type == "lat_occ_multiflow_vf_supervised":
-        model = LatOccMultiFlowVFSupervisedNeuralMotionPlanner(_n_input, _n_output, _pc_range, _voxel_size, args.flow_mode, args.nvf_loss_factor)
     else:
         raise NotImplementedError(f"{args.model_type} not implemented yet.")
 
@@ -237,12 +206,11 @@ if __name__ == "__main__":
     # data_group.add_argument("--dataset", type=str, default="once", choices=["nusc", "once"])
     # data_group.add_argument("--data-root", type=str, default="/data3/tkhurana/datasets/once")
     data_group.add_argument("--dataset", type=str, default="nusc", choices=["nusc", "once"])
-    data_group.add_argument("--data-root", type=str, default="/data3/tkhurana/datasets/nuScenes")
+    data_group.add_argument("--data-root", type=str, default="/data/nuScenes")
     data_group.add_argument("--nusc-train-split", type=str, default="train")
     data_group.add_argument("--data-version", type=str, choices=["v1.0-trainval", "v1.0-mini",
                             "labeled_train", "train_2k", "train_4k", "train_22k", "train_all", "train", "train_2k_unlabeled", "train_4k_unlabeled", "train_8k_unlabeled", "train_22k_unlabeled", "train_80k_unlabeled"])
     data_group.add_argument("--pc-range", type=float, nargs="+", default=[-40.0, -70.4, -2.0, 40.0, 70.4, 3.4])
-    # data_group.add_argument("--pc-range", type=float, nargs="+", default=[-80.0, -140.8, -2.0, 80.0, 140.8, 3.4])
     data_group.add_argument("--voxel-size", type=float, default=0.2)
     data_group.add_argument("--n-input", type=int, default=5)
     data_group.add_argument("--n-samples", type=int, default=1000)
@@ -253,10 +221,7 @@ if __name__ == "__main__":
     model_group = parser.add_argument_group("model")
     model_group.add_argument("--model-type", type=str, required=True)
     model_group.add_argument("--train-on-all-sweeps", action="store_true")
-    model_group.add_argument("--flow-mode", type=int, default=3)
     model_group.add_argument("--nvf-loss-factor", type=float, default=1.0)
-    model_group.add_argument("--obj-loss-factor", type=float, default=1.0)
-    model_group.add_argument("--occ-loss-factor", type=float, default=1.0)
     model_group.add_argument("--model-dir", type=str, required=True)
     model_group.add_argument("--optimizer", type=str, default="Adam")  # Adam with 5e-4
     model_group.add_argument("--lr-start", type=float, default=5e-4)

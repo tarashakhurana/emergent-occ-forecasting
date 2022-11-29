@@ -104,8 +104,6 @@ def CollateFn(batch):
         "fvf_maps": torch.stack([example["fvf_maps"] for example in batch]),
     }
 
-    # print("shape inside collate fn", examples["sampled_trajectories"].shape)
-
     examples["scene_tokens"] = [example["scene_token"] for example in batch]
 
     return examples
@@ -195,7 +193,7 @@ class ONCEDataset(Dataset):
                 sample_data = scene[frame_list[j]]
                 if (
                     True
-                ):  # (self.data_split == "train" and self.train_on_all_sweeps): # or (sample_data["is_key_frame"]):
+                ):
                     self.flip_flags.append(flip_flag)
                     self.scene_tokens.append(scene_token)
                     self.sample_data_tokens.append(sample_data_token)
@@ -213,14 +211,6 @@ class ONCEDataset(Dataset):
                     self.valid_index.append(frameid)
 
             # NOTE: make sure we have enough number of sweeps for input and output
-            # if self.data_split == "train" and self.train_on_all_sweeps:
-            #     valid_start_index = start_index + self.n_input - 1
-            #     valid_end_index = end_index - (self.n_output - 1) * self.N_SWEEPS_PER_SAMPLE
-            # else:
-            #     n_input_samples = self.n_input // self.N_SWEEPS_PER_SAMPLE
-            #     valid_start_index = start_index + n_input_samples
-            #     valid_end_index = end_index - self.n_output + 1
-            # self.valid_index += list(range(valid_start_index, valid_end_index))
 
         self._n_examples = len(self.valid_index)
 
@@ -243,7 +233,6 @@ class ONCEDataset(Dataset):
                 keys_to_delete = []
                 for key2 in value:
                     if len(value[key2]) < 200:
-                        # print(f"{len(value[key2])} train trajectories for {key} velocity and {key2} angle")
                         keys_to_delete.append(key2)
                 for keytd in keys_to_delete:
                     _ = value.pop(keytd)
@@ -392,10 +381,6 @@ class ONCEDataset(Dataset):
             ]
             assert sd_token[2] >= -1
 
-        # call out when we have less than the desired number of input sweeps
-        # if len(input_sds) < self.n_input:
-        #     warnings.warn(f"The number of input sweeps {len(input_sds)} is less than {self.n_input}.", RuntimeWarning)
-
         # get input sweep frames
         input_points_list = []
         input_origin_list = []
@@ -455,9 +440,6 @@ class ONCEDataset(Dataset):
                     curr_sd_token[0], curr_sd_token[1]
                 )
 
-                # remove ego returns
-                # curr_lidar_pc = self.remove_ego_once(curr_lidar_pc)
-
                 # transform from the current lidar frame to global and then to the reference lidar frame
                 global_from_curr = self.get_global_pose(curr_sd_token, inverse=False)
                 ref_from_curr = ref_from_global.dot(global_from_curr)
@@ -502,36 +484,6 @@ class ONCEDataset(Dataset):
             # points
             output_points_list.append(points.astype(np.float32))
 
-        """
-        if ref_sd_token[1] == '1616617840000': # plot point clouds to verify
-            ply_dir =  f'./videos_new/once/{ref_scene_token}/logs_ply/'
-            os.makedirs(ply_dir, exist_ok=True)
-            inputplyfile = f'./videos_new/once/{ref_scene_token}/logs_ply/{ref_sd_token[1]}_input.ply'
-            outputplyfile = f'./videos_new/once/{ref_scene_token}/logs_ply/{ref_sd_token[1]}_output.ply'
-
-            print(len(input_points_list), input_points_list[0].shape, inputplyfile)
-            print(len(output_points_list), output_points_list[0].shape, outputplyfile)
-
-            input_ply = np.vstack(input_points_list)[:, :3]
-            output_ply = np.vstack(output_points_list)[:, :3]
-
-            self.write_pointcloud(inputplyfile, input_ply)
-            self.write_pointcloud(outputplyfile, output_ply)
-        """
-        """
-        input_ply = np.array(input_ply, dtype=[("x", np.dtype("float32")),
-                                               ("y", np.dtype("float32")),
-                                               ("z", np.dtype("float32"))])
-        output_ply = np.array(output_ply, dtype=[("x", np.dtype("float32")),
-                                               ("y", np.dtype("float32")),
-                                               ("z", np.dtype("float32"))])
-
-        elements = plyfile.PlyElement.describe(input_ply, "vertex")
-        plyfile.PlyData([elements]).write(inputplyfile)
-        elements = plyfile.PlyElement.describe(output_ply, "vertex")
-        plyfile.PlyData([elements]).write(outputplyfile)
-
-        """
         # NOTE: trajectory sampling
 
         # initial speed
@@ -643,27 +595,9 @@ class ONCEDataset(Dataset):
                 sampled_trajectories_data.shape[0], size=200, replace=False
             )
             sampled_trajectories_data = sampled_trajectories_data[indices]
-            # print(sampled_trajectories.shape, sampled_trajectories_data.shape, sampled_trajectories_fine.shape)
             sampled_trajectories = np.vstack(
                 (sampled_trajectories, sampled_trajectories_data)
             )
-            # sampled_trajectories_fine += sampled_trajectories_data.copy()
-
-        # sampled_trajectories = np.vstack([sampled_trajectories, gt_trajectory[np.newaxis, :, :]])
-
-        """
-        # double check the sampled trajectories by plotting them
-        trajectory_dir = f"./videos_new/once/{ref_scene_token}/logs_trajectory/"
-        os.makedirs(trajectory_dir, exist_ok=True)
-        trajectory_path = f"{trajectory_dir}/{ref_sd_token[1]}.jpg"
-        # print(f"Doing {trajectory_path}:")
-        for trajectory in sampled_trajectories:
-            plt.plot(trajectory[:, 0], trajectory[:, 1])
-        plt.grid(False)
-        plt.axis("equal")
-        plt.savefig(trajectory_path)
-        plt.close()
-        """
 
         #
         obj_boxes = self.load_object_boxes(ref_sd_token)
@@ -825,7 +759,6 @@ class nuScenesDataset(Dataset):
             fvf_maps = fvf_maps.reshape((7, 704, 400))
         else:
             fvf_maps = np.zeros((7, 704, 400), dtype=np.int8)
-            # warnings.warn(f"Cannot find fvf_maps at {path}")
         return fvf_maps
 
     def load_object_boxes(self, sample_data_token):
@@ -864,10 +797,6 @@ class nuScenesDataset(Dataset):
             input_sds.append(curr_sd)
             sd_token = curr_sd["prev"]
 
-        # call out when we have less than the desired number of input sweeps
-        # if len(input_sds) < self.n_input:
-        #     warnings.warn(f"The number of input sweeps {len(input_sds)} is less than {self.n_input}.", RuntimeWarning)
-
         start = time.time()
         # get input sweep frames
         input_points_list = []
@@ -902,7 +831,6 @@ class nuScenesDataset(Dataset):
             input_origin_list.append(origin.astype(np.float32))
 
 
-        # print("time to get input sweeps", time.time() - start)
         start = time.time()
 
         # NOTE: output
@@ -994,21 +922,12 @@ class nuScenesDataset(Dataset):
         steer_data = steer_msgs[steer_index]
 
         # initial speed
-        # v0 = vm_data["vehicle_speed"] / 3.6  # km/h to m/s
         v0 = pose_data["vel"][0]  # [0] means longitudinal velocity
 
         # curvature (positive: turn left)
-        # steering = np.deg2rad(vm_data["steering"])
         steering = steer_data["value"]
         if flip_flag:
             steering *= -1
-
-        ################################################################
-        # override nuscenes values to test in the setting of once
-        # steering = 0.0
-        # v = (input_origin_list[0] - input_origin_list[1]) / 0.5
-        # v0 = v[1] # [1] means longitudinal velocity (velocity along y)
-        ################################################################
 
         # go ahead with gathering sampled trajectories
         Kappa = 2 * steering / 2.588
@@ -1027,8 +946,6 @@ class nuScenesDataset(Dataset):
         )  # define side
 
         #
-        # tt = np.arange(self.n_output) * self.SAMPLE_INTERVAL
-        # tt = np.arange(0, self.n_output + self.SAMPLE_INTERVAL, self.SAMPLE_INTERVAL)
         t_start = 0  # second
         t_end = (self.n_output - 1) * self.SAMPLE_INTERVAL  # second
         t_interval = self.SAMPLE_INTERVAL / 10
@@ -1038,21 +955,6 @@ class nuScenesDataset(Dataset):
         )
         sampled_trajectories = sampled_trajectories_fine[:, ::10]
 
-        # double check the sampled trajectories by plotting them
-        # trajectory_dir = f"./videos_new/nusc/{ref_scene_token}/logs_trajectory/"
-        # os.makedirs(trajectory_dir, exist_ok=True)
-        # trajectory_path = f"{trajectory_dir}/{ref_sd_token}.jpg"
-        # print(f"Doing {trajectory_path}:")
-        # for trajectory in sampled_trajectories:
-        #     plt.plot(trajectory[:, 0], trajectory[:, 1])
-        # plt.grid(False)
-        # plt.axis("equal")
-        # plt.savefig(trajectory_path)
-        # plt.close()
-
-        # print("time to get samples trajectories", time.time() - start)
-        start = time.time()
-
         #
         obj_boxes = self.load_object_boxes(ref_sd_token)
         obj_shadows = self.load_object_shadows(ref_sd_token)
@@ -1060,7 +962,6 @@ class nuScenesDataset(Dataset):
         #
         fvf_maps = self.load_future_visible_freespace(ref_sd_token)
 
-        # print("time to load everything else", time.time() - start)
         #
         example = {
             "scene_token": ref_scene_token,
@@ -1095,7 +996,7 @@ if __name__ == "__main__":
 
     from nuscenes.nuscenes import NuScenes
 
-    nusc = NuScenes("v1.0-mini", "/data3/tkhurana/datasets/nuScenes", verbose=True)
+    nusc = NuScenes("v1.0-mini", "/data/nuScenes", verbose=True)
     # nusc = NuScenes("v1.0-trainval", "/data/nuscenes", verbose=True)
 
     dataset = nuScenesDataset(nusc, "train", dataset_kwargs)
@@ -1111,91 +1012,3 @@ if __name__ == "__main__":
         "num_workers": 0,
     }
     data_loader = DataLoader(dataset, collate_fn=CollateFn, **data_loader_kwargs)
-
-    gt_trajs_dict = {0: [], 1: [], 2: [], 3: []}  # follow  # left  # right  # both
-    for i, batch in enumerate(data_loader):
-        import ipdb
-
-        ipdb.set_trace()
-        # _, in_pts, trajs, acts, out_orgs, out_pts, gt_trajs = batch
-        # for j in range(len(acts)):
-        #     a = (acts[j][0] + acts[j][1] * 2).item()
-        #     gt_trajs_dict[a].append(gt_trajs[j].numpy())
-
-    # for a in [0, 1, 2, 3]:
-    #     if len(gt_trajs_dict[a]) > 0:
-    #         gt_trajs_dict[a] = np.stack(gt_trajs_dict[a])
-
-    # for a, name in zip([0, 1, 2, 3], ["follow", "left", "right", "both"]):
-    #     gt_trajs = gt_trajs_dict[a]
-    #     plt.clf()
-    #     for i in range(len(gt_trajs)):
-    #         plt.plot(gt_trajs[i, :, 0], gt_trajs[i, :, 1])
-    #     plt.ylim([-70.4, 70.4])
-    #     plt.xlim([-40., 40.])
-    #     plt.savefig(f"gt_trajs_{name}.png")
-
-    # from torch.utils.cpp_extension import load
-    # raycaster = load("raycaster", sources=[
-    #     "lib/raycaster.cpp", "lib/raycaster.cu"
-    # ], verbose=True)
-
-    # def transform(points, x_min=-40, y_min=-70.4, voxel_size=0.2):
-    #     if points.ndim == 3:
-    #         points[:, :, 0] = (points[:, :, 0] - x_min) / voxel_size
-    #         points[:, :, 1] = (points[:, :, 1] - y_min) / voxel_size
-    #     elif points.ndim == 4:  # trajectories
-    #         points[:, :, :, 0] = (points[:, :, :, 0] - x_min) / voxel_size
-    #         points[:, :, :, 1] = (points[:, :, :, 1] - y_min) / voxel_size
-    #     return points
-
-    # for i, batch in enumerate(data_loader):
-    #     filenames, input_points, sampled_trajectories, output_origins, output_points, gt_trajectories = batch
-
-    #     input_points = transform(input_points)
-    #     sampled_trajectories = transform(sampled_trajectories)
-    #     output_origins = transform(output_origins)
-    #     output_points = transform(output_points)
-    #     gt_trajectories = transform(gt_trajectories)
-
-    #     output_origins = output_origins.to(device)
-    #     output_points = output_points.to(device)
-
-    #     # t x y
-    #     # stopper, occupancy = raycaster.raycast(output_origins, output_points, [n_output+1, 704, 400])
-    #     occupancy = raycaster.raycast(output_origins, output_points, [n_output, 704, 400])
-    #     # stopper = stopper.detach().cpu().numpy()
-    #     occupancy = occupancy.detach().cpu().numpy()
-
-    #     sampled_trajectories = sampled_trajectories.detach().cpu().numpy()
-    #     gt_trajectories = gt_trajectories.detach().cpu().numpy()
-
-    #     for j in range(len(occupancy)):
-    #         print(i, j, output_points[j].shape)
-    #         for k in range(len(sampled_trajectories[j])):
-    #             xs = sampled_trajectories[j, k, :, 0].astype(int)
-    #             ys = sampled_trajectories[j, k, :, 1].astype(int)
-    #             thetas = sampled_trajectories[j, k, :, 2]
-    #             valid = np.logical_and(
-    #                 np.logical_and(xs >= 0, xs < 400),
-    #                 np.logical_and(ys >= 0, ys < 704),
-    #             )
-    #             xs = xs[valid]
-    #             ys = ys[valid]
-    #             thetas = thetas[valid]
-    #             occupancy[j, :, ys, xs] = thetas[:, None]
-
-    #         for t in range(n_output):
-    #             image_path = f"sanity_checks/{i}_{j}_{t}.png"
-    #             x = int(gt_trajectories[j][t][0])
-    #             y = int(gt_trajectories[j][t][1])
-    #             theta = gt_trajectories[j][t][2]
-    #             W = 2
-    #             if y >= 0+W and y < 704-W and x >= 0+W and x < 400-W:
-    #                 occupancy[j, t, y-W:y+W+1, x-W:x+W+1] = theta
-
-    #             # plt.imsave(image_path, np.concatenate((stopper[j][t], occupancy[j][t]), axis=1))
-    #             plt.imsave(image_path, occupancy[j][t][::-1])
-
-    #     if i >= 10:
-    #         break

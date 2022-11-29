@@ -11,8 +11,6 @@ from torch.utils.data import DataLoader
 from nuscenes.nuscenes import NuScenes
 
 from data import nuScenesDataset, CollateFn
-# from model import OccupancyForecastingNetwork
-# from model import NeuralMotionPlanner
 
 from model import *
 
@@ -141,34 +139,12 @@ def test(args):
         model = VFGuidedNeuralMotionPlanner(_n_input, _n_output, _pc_range, _voxel_size)
     elif model_type == "obj_guided":
         model = ObjGuidedNeuralMotionPlanner(_n_input, _n_output, _pc_range, _voxel_size)
-    elif model_type == "obj_shadow_guided":
-        model = ObjShadowGuidedNeuralMotionPlanner(_n_input, _n_output, _pc_range, _voxel_size)
     elif model_type == "vf_explicit":
         model = VFExplicitNeuralMotionPlanner(_n_input, _n_output, _pc_range, _voxel_size, cfg["nvf_loss_factor"])
-    elif model_type == "obj_explicit":
-        model = ObjExplicitNeuralMotionPlanner(_n_input, _n_output, _pc_range, _voxel_size, cfg["obj_loss_factor"])
-    elif model_type == "occ_explicit":
-        model = OccExplicitNeuralMotionPlanner(_n_input, _n_output, _pc_range, _voxel_size, cfg["occ_loss_factor"])
     elif model_type == "vf_supervised":
         model = VFSupervisedNeuralMotionPlanner(_n_input, _n_output, _pc_range, _voxel_size, cfg["nvf_loss_factor"])
-    elif model_type == "obj_supervised":
-        model = ObjSupervisedNeuralMotionPlanner(_n_input, _n_output, _pc_range, _voxel_size, cfg["obj_loss_factor"])
-    elif model_type == "obj_shadow_supervised":
-        model = ObjShadowSupervisedNeuralMotionPlanner(_n_input, _n_output, _pc_range, _voxel_size, cfg["obj_loss_factor"])
-    elif model_type == "obj_supervised_raymax":
-        model = ObjSupervisedRaymaxNeuralMotionPlanner(_n_input, _n_output, _pc_range, _voxel_size, cfg["obj_loss_factor"])
-    elif model_type == "lat_occ":
-        model = LatOccNeuralMotionPlanner(_n_input, _n_output, _pc_range, _voxel_size, cfg["occ_loss_factor"])
     elif model_type == "lat_occ_vf_supervised":
         model = LatOccVFSupervisedNeuralMotionPlanner(_n_input, _n_output, _pc_range, _voxel_size, cfg["nvf_loss_factor"])
-    elif model_type == "lat_occ_vf_supervised_lat_occ":
-        model = LatOccVFSupervisedLatOccNeuralMotionPlanner(
-            _n_input, _n_output, _pc_range, _voxel_size, cfg["nvf_loss_factor"]
-        )
-    elif model_type == "lat_occ_flow_vf_supervised":
-        model = LatOccFlowVFSupervisedNeuralMotionPlanner(_n_input, _n_output, _pc_range, _voxel_size, cfg["nvf_loss_factor"])
-    elif model_type == "lat_occ_multiflow_vf_supervised":
-        model = LatOccMultiFlowVFSupervisedNeuralMotionPlanner(_n_input, _n_output, _pc_range, _voxel_size, cfg["flow_mode"], cfg["nvf_loss_factor"])
     else:
         raise NotImplementedError(f"{model_type} not implemented yet.")
 
@@ -229,30 +205,9 @@ def test(args):
         sampled_plans_fine = batch["sampled_trajectories_fine"].detach().cpu().numpy()
         gt_plans = batch["gt_trajectories"].detach().cpu().numpy()
 
-        plot_on = args.plot_on and (i % args.plot_every == 0)
         cache_on = args.cache_on and (i % args.cache_every == 0)
 
-        if plot_on and "il_cost" in results:
-            il_costs = results["il_cost"].detach().cpu().numpy()
-        else:
-            il_costs = None
-
-        if plot_on and "occ_cost" in results:
-            occ_costs = results["occ_cost"].detach().cpu().numpy()
-        else:
-            occ_costs = None
-
-        if plot_on and "nvf_cost" in results:
-            nvf_costs = results["nvf_cost"].detach().cpu().numpy()
-        else:
-            nvf_costs = None
-
-        if plot_on and "obj_cost" in results:
-            obj_costs = results["obj_cost"].detach().cpu().numpy()
-        else:
-            obj_costs = None
-
-        if (cache_on or plot_on) and "cost" in results:
+        if cache_on and "cost" in results:
             costs = results["cost"].detach().cpu().numpy()
         else:
             costs = None
@@ -274,46 +229,14 @@ def test(args):
             # - distinguish cost maps from different timestamps
 
             if args.compute_raydist_loss:
-                lessptspath = f"/data3/tkhurana/datasets/nuScenes/lesspoints/v1.0-trainval/{sample_data_token}.npy"
+                lessptspath = f"/data/nuScenes/lesspoints/v1.0-trainval/{sample_data_token}.npy"
                 less_points = np.load(lessptspath).astype(np.float32)
-                # print(less_points.shape)
-                # less_points = less_points.reshape(output_origins[j].shape[0], -1, 3)
-                # print("less points shape", less_points.shape)
                 for tind in range(less_points.shape[0]):
                     if tind == 0:
                         new_less_points = np.concatenate((less_points[tind], np.full((less_points.shape[1], 1), tind)), axis=1)
                     else:
                         new_less_points = np.vstack([new_less_points, np.concatenate((less_points[tind], np.full((less_points.shape[1], 1), tind)), axis=1)])
-                # print("after", new_less_points.shape)
-                # print(new_less_points[:5])
                 less_points = new_less_points[new_less_points[:, 2] != -1]
-                # print("after after", less_points.shape)
-
-            if plot_on:
-                # tt = [2, 4, 6]
-                tt = list(range(_n_output))
-                if il_costs is not None:
-                    il_cost = np.concatenate(il_costs[j, tt], axis=-1)
-                    plt.imsave(f"{vis_dir}/{sample_data_token}_il.png", il_cost[::-1])
-
-                if occ_costs is not None:
-                    occ_cost = np.concatenate(occ_costs[j, tt], axis=-1)
-                    # plt.imsave(f"{vis_dir}/{sample_data_token}_occ.png", occ_cost[::-1])
-                    plt.imsave(f"{vis_dir}/{sample_data_token}_env.png", occ_cost[::-1])
-
-                if nvf_costs is not None:
-                    nvf_cost = np.concatenate(nvf_costs[j, tt], axis=-1)
-                    # plt.imsave(f"{vis_dir}/{sample_data_token}_nvf.png", nvf_cost[::-1])
-                    plt.imsave(f"{vis_dir}/{sample_data_token}_env.png", nvf_cost[::-1])
-
-                if obj_costs is not None:
-                    obj_cost = np.concatenate(obj_costs[j, tt], axis=-1)
-                    # plt.imsave(f"{vis_dir}/{sample_data_token}_obj.png", obj_cost[::-1])
-                    plt.imsave(f"{vis_dir}/{sample_data_token}_env.png", obj_cost[::-1])
-
-                if costs is not None:
-                    cost = np.concatenate(costs[j, tt], axis=-1)
-                    plt.imsave(f"{vis_dir}/{sample_data_token}.png", cost[::-1])
 
             # rasterized collision ground truth
             obj_box_path = f"{obj_box_dir}/{sample_data_token}.bin"
@@ -321,7 +244,6 @@ def test(args):
 
             # T tells us how many future frames we have expert data for
             T = len(obj_boxes)
-            # print("value of T is ", T)
             counts[:T] += 1
 
             # skip when gt plan is flawed (because of the limits of BEV planning)
@@ -329,22 +251,14 @@ def test(args):
             gt_box_coll = evaluate_box_coll(obj_boxes, gt_plan, _pc_range)
 
             # compute L2 distance
-            # best_plan = best_plans[j, 0]
             output_plan = sampled_plans[j, best_plans[j, 0]]
             if args.compute_dense_fvf_loss:
                 nvf_prob = nvf_probs[j].reshape(7, -1)
                 nvf_gt = nvf_gts[j].reshape(7, -1)
                 nvf_pred = (nvf_prob > 0.5) + 0
-                print(sample_data_token, "unique nvf_gt", np.unique(nvf_gt))
-                """
-                for tind in range(7):
-                    plt.imsave(f'/data3/tkhurana/gt_{tind}.png', nvf_gts[j][tind])
-                    plt.imsave(f'/data3/tkhurana/prob_{tind}.png', nvf_probs[j][tind])
-                    plt.imsave(f'/data3/tkhurana/pred_{tind}.png', (nvf_probs[j][tind] > 0.5) + 0)
-                """
 
             if args.compute_raydist_loss:
-                if 0:
+                if occ_probs is None:
                     print("cannot compute raydist loss without occ_probs")
                     exit(0)
                 else:
@@ -364,29 +278,20 @@ def test(args):
                     output_origin[:, :, :3] = (
                         output_origin[:, :, :3] - offset
                     ) / scaler
-                    # print(torch.log(1 - occ_probs[j]).dtype, output_origin.dtype, less_points.dtype)
                     c = 3
                     nvf_prob = torch.from_numpy(nvf_probs[j]).type(torch.float64)
                     nvf_prob = 1 / (1 + (1 / nvf_prob - 1) ** c)
-                    # occ_prob = occ_probs[j].type(torch.float64)
-                    # occ_prob = 1 / (1 + (1 / occ_prob - 1) ** c)
                     pred_dist, gt_dist, _, _ = renderer.render(
                         - torch.log(1 - nvf_prob).float().to(device).unsqueeze(0),
                         output_origin.float().to(device),
                         less_points.float().to(device),
                     )
-                    # print("pred dist shape", pred_dist.shape)
                     pred_dist = pred_dist[0].detach().cpu().numpy()
                     gt_dist = gt_dist[0].detach().cpu().numpy()
                     indices = ~np.isnan(pred_dist)
                     pred_dist = pred_dist[indices]
                     gt_dist = gt_dist[indices]
-                    # print("pred_dist", pred_dist[:10])
-                    # print("gt_dist", gt_dist[:10])
                     less_points = less_points[:, indices, :]
-                    # raydist_error += np.sum(np.abs(pred_dist - gt_dist), axis=(-1, -2))
-                    # print(less_points[0][:10])
-                    # print((less_points[..., 3].type(dtype=torch.int) == 2)[0])
 
                     pred_points = np.zeros((1, less_points.shape[1], 2))
                     gt_points = np.zeros((1, less_points.shape[1], 2))
@@ -394,18 +299,7 @@ def test(args):
                         for t in range(7):
                             sigmat = -np.log(1 - nvf_prob.numpy())[t]
                             zeros = np.zeros((sigmat.shape[0], sigmat.shape[1], 3)) + 255
-                            # print("unique values in sigmat", np.unique(sigmat))
-                            # cv2.imwrite(
-                            #     f"{vis_dir}/{sample_data_token[0]}/{sample_data_token[2]}/occ/1{t}.png",
-                            #     rotate(
-                            #         np.dstack([zeros, zeros, occ_prob_[0, t] * 255])[::-1],
-                            #         "",
-                            #     ),
-                            # )
-                            # # white bg: plt.imshow(np.dstack((zeros, 1 - occ_prob[0, t], 1 - occ_prob[0, t])))
-                            # black bg: plt.imshow(np.dstack((occ_prob[0, t], zeros, zeros)))
                             idx = np.flatnonzero(less_points[n, :, 3] == t)
-                            # print(points[n, idx, :2].shape, origins[n, t, None, :].shape)
                             unit_vector = less_points[n, idx, :2] - output_origin[n, t, None, :2]
                             unit_vector /= np.linalg.norm(
                                 unit_vector, axis=-1, keepdims=True
@@ -436,12 +330,8 @@ def test(args):
                             ptsy = ptsy[indices].astype(int)
                             zeros[ptsy[:50], ptsx[:50], 1] = 0
                             zeros[ptsy[:50], ptsx[:50], 2] = 0
-                            # cv2.imwrite(
-                            #     f"/data3/tkhurana/pred_gt_points_{t}.png", zeros,
-                            # )
 
                     for tind in range(7):
-                        # print(tind, np.sum(pred_dist[(less_points[..., 3] == tind)[0]]), np.sum(gt_dist[(less_points[..., 3] == tind)[0]]), np.sum(np.abs(pred_dist[(less_points[..., 3] == tind)[0]] - gt_dist[(less_points[..., 3] == tind)[0]])), gt_dist[(less_points[..., 3] == tind)[0]].shape[0])
                         raydist_error[tind] += np.sum(np.abs(pred_dist[(less_points[..., 3] == tind)[0]] - gt_dist[(less_points[..., 3] == tind)[0]]
                                                              ) / gt_dist[(less_points[..., 3] == tind)[0]]) / gt_dist[(less_points[..., 3] == tind)[0]].shape[0]
 
@@ -469,21 +359,8 @@ def test(args):
             box_coll = evaluate_box_coll(obj_boxes, output_plan, _pc_range)
             obj_box_coll_sum[ti[m2]] += (box_coll[ti[m2]]).astype(int)
             if args.compute_dense_fvf_loss:
-                # print("min max values in nvf_prob", np.min(nvf_prob), np.max(nvf_prob))
-                # print(
-                #     "min max values in nvf_gt",
-                #     np.unique(nvf_gt),
-                #     np.min(nvf_gt),
-                #     np.max(nvf_gt),
-                # )
-                # dense_fvf_loss[ti[m1]] += (
-                #     np.sum(np.abs(nvf_prob - nvf_gt), axis=(1, 2)) / (704 * 400)
-                # )[ti[m1]]
-                # print(nvf_gt.shape, nvf_prob.shape)
                 nvf_prob = nvf_prob.reshape((7, -1))
-                print("unique values in nvf_gtf", np.unique(nvf_gt))
                 for tind in range(7):
-                    print(nvf_gt[tind].shape, nvf_prob[tind].shape, nvf_pred[tind].shape)
                     dense_fvf_bce[tind] += sklearn.metrics.log_loss(nvf_gt[tind], nvf_prob[tind])
                     dense_fvf_f1[tind] += sklearn.metrics.f1_score(nvf_gt[tind], nvf_pred[tind])
                     dense_fvf_ap[tind] += sklearn.metrics.average_precision_score(nvf_gt[tind], nvf_prob[tind])
@@ -539,8 +416,6 @@ if __name__ == "__main__":
     parser.add_argument("--batch-size", type=int, default=36)
     parser.add_argument("--cache-on", action="store_true")
     parser.add_argument("--cache-every", type=int, default=1)
-    parser.add_argument("--plot-on", action="store_true")
-    parser.add_argument("--plot-every", type=int, default=1)
     parser.add_argument("--compute-dense-fvf-loss", action="store_true")
     parser.add_argument("--compute-raydist-loss", action="store_true")
     parser.add_argument("--num-workers", type=int, default=18)

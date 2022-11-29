@@ -60,60 +60,6 @@ def process(sd):
     grnd_index = np.flatnonzero(label)
     lbls[index[grnd_index]] = 24
 
-    # print("REached here")
-
-    """
-    # visualize to double check
-    if False:
-        import open3d as o3d
-        pcd = o3d.geometry.PointCloud()
-        pcd.points = o3d.utility.Vector3dVector(pts)
-
-        import matplotlib.pyplot as plt
-        cmap = plt.get_cmap("jet")
-        colors = np.zeros_like(pts)
-        colors[lbls == 24, :] = [1, 0, 0]
-        colors[lbls == 30, :] = [0, 1, 0]
-        colors[lbls == 31, :] = [0, 0, 1]
-        pcd.colors = o3d.utility.Vector3dVector(colors)
-
-        o3d.visualization.draw_geometries([pcd])
-
-    """
-
-    """
-    import matplotlib.pyplot as plt
-    colors = np.empty(35, dtype='object')
-    colors[24] = 'r'
-    colors[30] = 'g'
-    colors[31] = 'b'
-    fig = plt.figure(figsize=(20, 20))
-    ax = fig.add_subplot(111, projection='3d')
-    ax.set_aspect('auto')
-    indices = (pts[:, 0] < 30) & (pts[:, 0] > -30) & (pts[:, 1] < 60) & (pts[:, 1] > -60)
-    pts_ = pts[indices]
-    lbls_ = lbls[indices]
-    ax.scatter(pts_[:, 0], pts_[:, 1], pts_[:, 2], c=colors[lbls_], alpha=0.5, s=0.1)
-
-    ax.set_xlabel('X')
-    ax.set_ylabel('Y')
-    ax.set_zlabel('Z')
-    # Hide grid lines
-    ax.grid(False)
-
-    # Hide axes ticks
-    # ax.set_xticks([])
-    # ax.set_yticks([])
-    # ax.set_zticks([])
-    ax.view_init(90, 90)
-
-    pcd_dir = f"./videos_new/once/{sd['seq_id']}/logs_egomask/"
-    os.makedirs(pcd_dir, exist_ok=True)
-    pcd_path = f"{pcd_dir}/{sd['frame_id']}.jpg"
-    print(f"Doing {pcd_path} :")
-    plt.savefig(pcd_path)
-    """
-
     #
     if dataset == 'nusc':
         res_file = os.path.join(res_dir, f"{sd['token']}_grndseg.bin")
@@ -127,7 +73,7 @@ def process(sd):
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--data-root", type=str, default="/data3/tkhurana/datasets/once")
+    parser.add_argument("--data-root", type=str, default="/data/once")
     parser.add_argument("--data-version", type=str, default="train")
     parser.add_argument("--dataset", type=str, default="once", choices=['nusc', 'once'])
     parser.add_argument("--num-workers", type=int, default=16)

@@ -174,7 +174,7 @@ class ONCE(object):
         self.raw_medium_info = defaultdict(dict)
         self.raw_large_info = defaultdict(dict)
 
-        for attr in ['labeled_train', 'val', 'train_22k', 'train_2k', 'train_4k']: # , 'train_labeled_medium', 'train_22k', 'train_15k', 'train_4k', 'train_2k', 'train', 'val', 'test']: # , 'raw_small', 'raw_medium', 'raw_large']:
+        for attr in ['labeled_train', 'val', 'train_22k', 'train_2k', 'train_4k']:
             if getattr(self, '{}_split_list'.format(attr)) is not None:
                 split_list = getattr(self, '{}_split_list'.format(attr))
                 info_dict = getattr(self, '{}_info'.format(attr))
@@ -190,11 +190,9 @@ class ONCE(object):
                             global_trans = frame_anno['pose'][-3:]
                         pose = self.subtract_global_translation(frame_anno['pose'], global_trans)
                         if not self.valid_pose(pose):
-                            # print("Skipping because the rotation annotation was not valid for", seq, frame_anno['frame_id'], pose)
                             continue
                         frame_list.append(str(frame_anno['frame_id']))
                         info_dict[seq][frame_anno['frame_id']] = {
-                            # 'pose': self.coordinate_transform(frame_anno['pose']),
                             'pose': pose,
                         }
                         info_dict[seq][frame_anno['frame_id']]['calib'] = dict()
@@ -218,9 +216,6 @@ class ONCE(object):
     def load_point_cloud(self, seq_id, frame_id):
         bin_path = osp.join(self.data_root, seq_id, 'lidar_roof', '{}.bin'.format(frame_id))
         points = np.fromfile(bin_path, dtype=np.float32).reshape(-1, 4)
-        # flip x and y coordinates to match with nuScenes
-        # points[:, 0] = - points[:, 0]
-        # points[:, 1] = - points[:, 1]
         return points
 
     def invert_rotation(self, pose):
@@ -232,15 +227,11 @@ class ONCE(object):
     def valid_pose(self, pose):
         rot = pose[:4]
         q1 = Quaternion(rot)
-        # print(np.rint(q1.rotation_matrix @ q1.rotation_matrix.T))
         condition1 = np.rint(q1.rotation_matrix @ q1.rotation_matrix.T).all() == np.eye(3).all()
-        # print(np.rint(np.linalg.det(q1.rotation_matrix)))
         condition2 = np.rint(np.linalg.det(q1.rotation_matrix)) == 1
         if condition1 and condition2:
             return True
         else:
-            # print(np.rint(q1.rotation_matrix @ q1.rotation_matrix.T))
-            # print(np.rint(np.linalg.det(q1.rotation_matrix)))
             return False
 
     def subtract_global_translation(self, pose, trans):

@@ -61,19 +61,13 @@ def sample(v0, Kappa, T0, N0, tt, M, debug=False):
 
     ############################################################################
     # sample M clothoids
-    # TODO figure out how to do this ...
-    # NOTE
-    #   the way I was sampling clothoids was wrong, leading to sampling weird turning motions
-    #   I am trying to correct that based on clothoid.py
-    # Xi0 = Kappa / np.pi
-    # Xis = Xi0 + L
     Xi0 = np.abs(Kappa) / np.pi
     Xis = Xi0 + L
 
     #
     # Ss, Cs = fresnel((Xis - Xi0) / alphas[:, None])
     Ss, Cs = fresnel(Xis / alphas[:, None])
-    
+
     clothoid_points = alphas[:,None,None] * (Cs[:,:,None]*T0[None,None,:] + Ss[:,:,None]*N0[None,None,:])
     # print("clothoid_points:", clothoid_points)
 
@@ -113,11 +107,6 @@ def sample(v0, Kappa, T0, N0, tt, M, debug=False):
         t_selections[:] = 2
 
     ############################################################################
-    # randomly mirroring
-    # trajectories = t_options[t_selections, np.arange(M)]
-    # signs = np.random.choice([0,1], M, p=[0.5, 0.5])
-    # trajectories[:,:,0] *= signs[:,None]
-
     #
     trajs = t_options[t_selections, np.arange(M)]
 
@@ -135,8 +124,6 @@ def sample(v0, Kappa, T0, N0, tt, M, debug=False):
 
     if debug:
         trajectories = trajs
-
-    # return trajectories, t_selections
 
     return trajectories
 
@@ -157,15 +144,6 @@ if __name__ == "__main__":
         pose = nusc_can.get_messages(scene_name, "pose")
         saf = nusc_can.get_messages(scene_name, "steeranglefeedback")
         vm = nusc_can.get_messages(scene_name, "vehicle_monitor")
-        # NOTE: I tried to verify if the relevant measurements are consistent
-        # across multiple tables that contain redundant information
-        # NOTE: verified pose's velocity matches vehicle monitor's
-        # but the pose table offers at a much higher frequency
-        # NOTE: same that steeranglefeedback's steering angle matches vehicle monitor's
-        # but the steeranglefeedback table offers at a much higher frequency
-        print(pose[23])
-        print(saf[45])
-        print(vm[0])
 
         # initial velocity (m/s)
         v0 = pose[23]["vel"][0]
@@ -179,9 +157,9 @@ if __name__ == "__main__":
         tt = np.arange(0.0, 3.01, 0.01)
         # M: number of samples
         M = 2000
-        # 
+        #
         debug = False
-        # 
+        #
         trajectories = sample(v0, Kappa, T0, N0, tt, M, debug)
         #
         for i in range(len(trajectories)):
@@ -189,5 +167,3 @@ if __name__ == "__main__":
             plt.plot(trajectory[:, 0], trajectory[:, 1])
         plt.grid(False)
         plt.axis("equal")
-        import ipdb
-        ipdb.set_trace()

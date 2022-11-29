@@ -22,7 +22,7 @@ import matplotlib.pyplot as plt
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--dataset", type=str, default='once', choices=['nusc', 'once'])
-parser.add_argument("--data-root", type=str, default="/data3/tkhurana/datasets/once")
+parser.add_argument("--data-root", type=str, default="/data/once")
 parser.add_argument("--data-version", type=str, default="val")
 args = parser.parse_args()
 
@@ -208,7 +208,6 @@ n_next = 6
 
 total_bad_intervals = [0]
 
-# for ref_sample in tqdm(nusc.sample):
 def rasterize(ref_sample):
 
     # global total_bad_intervals
@@ -246,7 +245,6 @@ def rasterize(ref_sample):
             if detection_name is None:  # there are certain categories we will ignore
                 continue
 
-            # print(sample_annotation["category_name"], detection_name)
             curr_sample_boxes.append(DetectionBox(
                 sample_token=curr_sample_token,
                 translation=sample_annotation["translation"],
@@ -292,8 +290,6 @@ def rasterize(ref_sample):
 
     ref_lidar_token = ref_lidar_data["token"]
 
-    print("object boxes shape", obj_boxes.shape)
-
     obj_box_path = f"{obj_box_dir}/{ref_lidar_token}.bin"
     if not os.path.exists(obj_box_path):
         obj_boxes.tofile(obj_box_path)
@@ -328,9 +324,6 @@ def rasterize_once(ref_sample):
     obj_box_list = []
     obj_shadow_list = []
 
-    if ref_sample["frame_id"] == '1616343531700':
-        print("Doing the mysterious frame")
-
     ref_sample_token = [ref_sample["seq_id"], ref_sample["frame_id"], ref_sample["i"]]
     ref_from_global = get_global_pose(ref_sample_token, inverse=True)
 
@@ -345,20 +338,13 @@ def rasterize_once(ref_sample):
             total_bad_intervals[0] += 1
         time_interval = int(curr_sample_token[1])
 
-        # if curr_sample["frame_id"] == '1616343531700':
-            # print("inside for loop of mysterious frame")
-
         if 'annos' in curr_sample:
             for annotation in curr_sample["annos"]["boxes_3d"]:
-                # annotation[0] = - annotation[0]
-                # annotation[1] = - annotation[1]
                 curr_sample_boxes.append(Box(
                     center=annotation[:3],
                     size=annotation[3:6],
                     orientation=quaternion_from_yaw(annotation[6] + np.pi / 2), # add pi to the yaw angle of the cuboid
                 ))
-                # if curr_sample_token[1] == '1616343531700':
-                # print("yaw angle", annotation[6], curr_sample_token)
 
         # NOTE transform boxes to the *reference* frame
         global_from_curr = get_global_pose(curr_sample_token, inverse=False)
@@ -387,8 +373,6 @@ def rasterize_once(ref_sample):
     os.makedirs(obj_box_dir, exist_ok=True)
     os.makedirs(obj_shadow_dir, exist_ok=True)
 
-    # print("object boxes shape", obj_boxes.shape)
-    # print("object shadows shape", obj_shadows.shape)
     obj_boxes = obj_boxes[:, ::-1, ::-1]
     obj_shadows = obj_shadows[:, ::-1, ::-1]
 
@@ -409,6 +393,3 @@ if __name__ == "__main__":
     elif dataset == "once":
         with Pool(16) as p:
             results = list(tqdm(p.imap(rasterize_once, once_samples), total=len(once_samples)))
-
-
-    print("FOUND TOTAL BAD INTERVALS TO BE", total_bad_intervals)
