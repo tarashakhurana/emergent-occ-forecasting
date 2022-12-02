@@ -48,8 +48,8 @@ Planning losses are always computed.
 ## Model names
 Note that in the provided `test_once.py`, `test_nusc.py`, `train.py` and `model.py`, the model names refer to the following:
 - `VanillaNeuralMotionPlanner`: An imitation learning baseline that just follows the expert at every way point
-- `ObjGuidedNeuralMotionPlanner`: Best possible re-implementation of the [Neural Motion Planner]()
-- `VFGuidedNeuralMotionPlanner`: Implementation of the [Safe Local Motion Planner]()
+- `ObjGuidedNeuralMotionPlanner`: Best possible re-implementation of the [Neural Motion Planner](https://arxiv.org/abs/2101.06679)
+- `VFGuidedNeuralMotionPlanner`: Implementation of the [Safe Local Motion Planner](https://openaccess.thecvf.com/content/CVPR2021/papers/Hu_Safe_Local_Motion_Planning_With_Self-Supervised_Freespace_Forecasting_CVPR_2021_paper.pdf)
 - `VFExplicitNeuralMotionPlanner`: Row (c) in Table 3
 - `VFSupervisedNeuralMotionPlanner`: Row (d) in Table 3
 - In order to simulate the two models in Table 1 in paper, just weigh the `Lm` or max-margin loss with 0 in `model.py` for the `VFGuided` and `LatOccVFSupervised` neural motion planners.
