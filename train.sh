@@ -7,4 +7,4 @@ python train.py \
     --dataset nusc --data-root /data/nuScenes \
     --data-version v1.0-trainval
 
-# can use --train-on-all-sweeps when training on the once dataset
+# should use --train-on-all-sweeps when training on the once dataset

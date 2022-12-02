@@ -830,7 +830,6 @@ class nuScenesDataset(Dataset):
             input_points_list.append(points.astype(np.float32))
             input_origin_list.append(origin.astype(np.float32))
 
-
         start = time.time()
 
         # NOTE: output
