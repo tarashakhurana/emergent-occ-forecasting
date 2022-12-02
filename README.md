@@ -2,6 +2,7 @@
 
 # Differentiable Raycasting for Self-supervised Occupancy Forecasting
 By Tarasha Khurana\*, Peiyun Hu\*, Achal Dave, Jason Ziglar, David Held, and Deva Ramanan
+
 \* equal contribution
 
 ## Citing us
