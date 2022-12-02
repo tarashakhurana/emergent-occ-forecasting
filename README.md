@@ -35,18 +35,23 @@ Refer to `train.py`, which can be run using `train.sh`. You might find these arg
 - `--data-version`: Which subset of the dataset
 - `--sampled-trajectories`: Whether to form clothoid-based or data-driven candidate trajectories
 - `--sample-set`: What subset of a dataset to sample the data-driven trajectories from
-- `--train-on-all-sweeps`: Whether to train only on key frames or all frames, to be always used for ONCE
+- `--train-on-all-sweeps`: Whether to train only on key frames or all frames for nuScenes; to be _always_ used for ONCE
 - `--nvf-loss-factor`: How much weight to apply to the binary cross entropy loss for freespace
 
 ## Testing
-Refer to `test_once.py` and `test_nusc.py`, which can be run using `test_once.sh` and `test_nusc.sh` for the ONCE and nuScenes datasets respectively.
+Refer to `test_once.py` and `test_nusc.py`, which can be run using `test_once.sh` and `test_nusc.sh` for the ONCE and nuScenes datasets respectively. You might find these arguments useful.
+- `--compute-dense-fvf-loss`: Compute the dense freespace classification metrics in Table 1 in paper
+- `--compute-raydist-loss`: Compute the error for the predicted distance along every ray in the groundtruth
+
+Planning losses are always computed.
 
 ## Model names
 Note that in the provided `test_once.py`, `test_nusc.py`, `train.py` and `model.py`, the model names refer to the following:
-- `VanillaNeuralMotionPlanner`: an imitation learning baseline that just follows the expert at every way point
-- `ObjGuidedNeuralMotionPlanner`: best possible re-implementation of the [Neural Motion Planner]()
-- `VFGuidedNeuralMotionPlanner`: implementation of the [Safe Local Motion Planner]()
-- ``
+- `VanillaNeuralMotionPlanner`: An imitation learning baseline that just follows the expert at every way point
+- `ObjGuidedNeuralMotionPlanner`: Best possible re-implementation of the [Neural Motion Planner]()
+- `VFGuidedNeuralMotionPlanner`: Implementation of the [Safe Local Motion Planner]()
+- `VFExplicitNeuralMotionPlanner`: Row (c) in Table 3
+- `VFSupervisedNeuralMotionPlanner`: Row (d) in Table 3
 - In order to simulate the two models in Table 1 in paper, just weigh the `Lm` or max-margin loss with 0 in `model.py` for the `VFGuided` and `LatOccVFSupervised` neural motion planners.
 
 ## Acknowledgements
