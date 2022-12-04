@@ -5,7 +5,7 @@ By Tarasha Khurana\*, Peiyun Hu\*, Achal Dave, Jason Ziglar, David Held, and Dev
 
 \* equal contribution
 
-`[project page](https://www.cs.cmu.edu/~tkhurana/ff3d.html)` | `[5-min summary](https://youtu.be/QqSCu0KJ2FM)`
+[project page](https://www.cs.cmu.edu/~tkhurana/ff3d.html) | [5-min summary](https://youtu.be/QqSCu0KJ2FM)
 
 ## Citing us
 You can find our paper on [ECVA](https://www.ecva.net/papers/eccv_2022/papers_ECCV/html/1105_ECCV_2022_paper.php) and [Springer](https://link.springer.com/chapter/10.1007/978-3-031-19839-7_21). If you find our work useful, please consider citing:
